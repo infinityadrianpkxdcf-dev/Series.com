@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeriesTube | Catálogo de Series en YouTube</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#0b0c10',
+                            card: '#161822',
+                            cardHover: '#1e2130',
+                            accent: '#FF0000',
+                            accentHover: '#cc0000',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b0c10;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f1014;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3142;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FF0000;
+        }
+
+        .series-card {
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .series-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 0 22px rgba(255, 0, 0, 0.22);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-animate {
+            animation: modalFadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-red-500 selection:text-white">
+
+    <!-- ==================== NAVBAR ==================== -->
+    <nav class="fixed top-0 w-full z-40 transition-all duration-300 bg-[#0b0c10]/90 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <!-- Logo -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="resetFilters()">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center shadow-lg shadow-red-600/30">
+                        <i class="fa-brands fa-youtube text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-display font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
+                            Series<span class="text-red-500">Tube</span>
+                        </span>
+                        <span class="hidden sm:inline-block ml-2 text-xs font-medium px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">
+                            Cloud Sync
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Buscador Desktop -->
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <div class="relative w-full">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" id="searchInputDesktop" placeholder="Buscar serie, canal de YouTube o género..." 
+                            class="w-full bg-[#161822] text-sm text-white placeholder-gray-400 pl-10 pr-4 py-2.5 rounded-xl border border-white/10 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition">
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <button id="creatorAuthBtn" onclick="handleCreatorAuthClick()" title="Acceso exclusivo para el creador del catálogo"
+                        class="p-2.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs sm:text-sm font-medium transition flex items-center gap-2 cursor-pointer">
+                        <i id="creatorAuthIcon" class="fa-solid fa-lock text-gray-400"></i>
+                        <span id="creatorAuthText" class="hidden sm:inline">Acceso Creador</span>
+                    </button>
+
+                    <button onclick="openShareModal()"
+                        class="p-2.5 sm:px-4 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs sm:text-sm font-medium transition flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-share-nodes text-red-400"></i>
+                        <span class="hidden sm:inline">Compartir</span>
+                    </button>
+
+                    <button id="addSeriesNavBtn" onclick="openFormModal()"
+                        class="hidden px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-red-600/30 transition items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Añadir Serie</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ==================== HERO BANNER (SERIE DESTACADA) ==================== -->
+    <section id="heroSection" class="hidden relative pt-20 sm:pt-24 pb-10 overflow-hidden">
+        <div id="heroBackdrop" class="absolute inset-0 z-0 opacity-30 transition-all duration-700 bg-gradient-to-br from-red-950 via-neutral-900 to-[#0b0c10]"></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-t from-[#0b0c10] via-[#0b0c10]/75 to-transparent"></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-r from-[#0b0c10] via-[#0b0c10]/85 to-transparent"></div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
+            <div id="heroContent" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center"></div>
+        </div>
+    </section>
+
+    <!-- ==================== CONTENIDO PRINCIPAL ==================== -->
+    <main id="mainContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20">
+        
+        <!-- Buscador Móvil -->
+        <div class="md:hidden mb-4">
+            <div class="relative w-full">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                <input type="text" id="searchInputMobile" placeholder="Buscar serie o canal..." 
+                    class="w-full bg-[#161822] text-sm text-white placeholder-gray-400 pl-10 pr-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-red-500">
+            </div>
+        </div>
+
+        <!-- Filtros y Estadísticas -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-white/10 pb-4">
+            <div id="categoryFilters" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+
+            <div class="flex items-center justify-between sm:justify-end gap-3 text-xs text-gray-400 shrink-0">
+                <span id="cloudSyncBadge" class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span>Conectando nube...</span>
+                </span>
+                <span id="seriesCountBadge" class="bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">0 series</span>
+                <select id="sortSelect" onchange="renderCatalog()" class="bg-[#161822] text-gray-200 border border-white/10 rounded-lg px-3 py-1.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                    <option value="featured">Destacadas primero</option>
+                    <option value="rating">Mejor puntuación</option>
+                    <option value="newest">Más recientes</option>
+                    <option value="seasons">Más temporadas</option>
+                    <option value="title">Alfabético (A-Z)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Estado de Carga Inicial -->
+        <div id="loadingState" class="text-center py-20 px-4">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-red-600/15 border border-red-500/30 flex items-center justify-center text-red-500 text-2xl mb-4">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </div>
+            <h3 class="text-lg font-display font-bold text-white mb-1">Cargando catálogo...</h3>
+            <p class="text-gray-400 text-sm">Sincronizando tus series y temporadas desde la nube.</p>
+        </div>
+
+        <!-- Grid del Catálogo -->
+        <div id="seriesGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+        <!-- Estado Vacío -->
+        <div id="emptyState" class="hidden text-center py-20 px-4">
+            <div class="w-20 h-20 mx-auto rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-3xl mb-4">
+                <i class="fa-brands fa-youtube"></i>
+            </div>
+            <h3 id="emptyStateTitle" class="text-xl font-bold text-white mb-2">Aún no hay series publicadas</h3>
+            <p id="emptyStateDesc" class="text-gray-400 text-sm max-w-md mx-auto mb-6">
+                El creador todavía no ha añadido series en este catálogo sincronizado en la nube. ¡Vuelve pronto!
+            </p>
+            <div id="emptyStateActions" class="flex flex-wrap items-center justify-center gap-3"></div>
+        </div>
+    </main>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="border-t border-white/5 bg-[#08090c] py-8 text-center text-xs text-gray-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="flex items-center justify-center gap-1.5">
+                <i class="fa-brands fa-youtube text-red-500 text-sm"></i>
+                <span>SeriesTube — Catálogo colaborativo permanente en la nube para YouTube.</span>
+            </p>
+            <div id="creatorFooterTools" class="hidden items-center gap-4">
+                <button onclick="exportCatalogJSON()" class="hover:text-gray-300 transition cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-download"></i> Exportar respaldo (.json)
+                </button>
+                <label class="hover:text-gray-300 transition cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-upload"></i> Importar (.json)
+                    <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importCatalogJSON(event)">
+                </label>
+                <button onclick="openChangePinModal()" class="text-amber-400/80 hover:text-amber-300 transition cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-key"></i> Cambiar PIN
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== MODAL 1: DETALLES Y REPRODUCTOR ==================== -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
+        <div class="modal-animate relative w-full max-w-4xl bg-[#161822] border border-white/10 rounded-2xl shadow-2xl overflow-hidden my-8">
+            <button onclick="closeDetailModal()" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/75 hover:bg-red-600 text-white flex items-center justify-center transition backdrop-blur-md border border-white/10 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div id="detailModalContent"></div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: AÑADIR / EDITAR SERIE ==================== -->
+    <div id="formModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
+        <div class="modal-animate relative w-full max-w-2xl bg-[#161822] border border-white/10 rounded-2xl shadow-2xl overflow-hidden my-8">
+            <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#1b1e2b]">
+                <h3 id="formModalTitle" class="text-lg font-display font-bold text-white flex items-center gap-2">
+                    <i class="fa-brands fa-youtube text-red-500 text-xl"></i>
+                    <span>Añadir Serie de YouTube</span>
+                </h3>
+                <button onclick="closeFormModal()" class="text-gray-400 hover:text-white p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="seriesForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4 max-h-[84vh] overflow-y-auto">
+                <input type="hidden" id="editSeriesId">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Título de la serie *</label>
+                        <input type="text" id="inputTitle" required placeholder="Ej. Digital Circus, Murder Drones..."
+                            class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                            <i class="fa-brands fa-youtube text-red-500 mr-1"></i> Canal de YouTube / Creador *
+                        </label>
+                        <input type="text" id="inputChannel" required placeholder="Ej. GLITCH, Kane Pixels..."
+                            class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Categoría *</label>
+                        <select id="inputGenre" required class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                            <option value="Animación Indie">Animación Indie</option>
+                            <option value="Ciencia Ficción">Ciencia Ficción</option>
+                            <option value="Misterio / Terror">Misterio / Terror</option>
+                            <option value="Documental">Documental</option>
+                            <option value="Comedia">Comedia</option>
+                            <option value="Drama / Webserie">Drama / Webserie</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Estado *</label>
+                        <select id="inputStatus" required class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                            <option value="En emisión">🔴 En emisión</option>
+                            <option value="Completa">✅ Completa</option>
+                            <option value="Piloto / Especial">🎬 Piloto / Especial</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Año *</label>
+                        <input type="number" id="inputYear" required min="2005" max="2035" value="2025"
+                            class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Tu puntuación *</label>
+                        <select id="inputRating" class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                            <option value="5">⭐⭐⭐⭐⭐ (5.0 - Obra Maestra)</option>
+                            <option value="4.5">⭐⭐⭐⭐✨ (4.5 - Excelente)</option>
+                            <option value="4">⭐⭐⭐⭐ (4.0 - Muy buena)</option>
+                            <option value="3.5">⭐⭐⭐✨ (3.5 - Entretenida)</option>
+                            <option value="3">⭐⭐⭐ (3.0 - Pasable)</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="flex items-center gap-3 cursor-pointer select-none bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5">
+                            <input type="checkbox" id="inputFeatured" class="w-5 h-5 rounded bg-[#161822] border-white/20 text-red-600 focus:ring-red-500">
+                            <span class="text-sm text-gray-200 font-medium">Destacar esta serie en la portada principal</span>
+                        </label>
+                    </div>
+
+                    <!-- SECCIÓN DE TEMPORADAS -->
+                    <div class="sm:col-span-2 bg-[#0b0c10] border border-red-500/25 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-red-400">
+                                    <i class="fa-solid fa-layer-group mr-1"></i> Temporadas y Listas de Reproducción *
+                                </label>
+                                <p class="text-[11px] text-gray-400 mt-0.5">Pega el enlace de la Playlist (?list=...) o video de cada temporada.</p>
+                            </div>
+                            <button type="button" onclick="addSeasonFieldRow()"
+                                class="shrink-0 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Añadir Temporada</span>
+                            </button>
+                        </div>
+                        <div id="seasonsFormContainer" class="space-y-3"></div>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                            URL de portada personalizada <span class="text-gray-500 font-normal lowercase">(opcional, miniatura automática de YouTube)</span>
+                        </label>
+                        <input type="url" id="inputImage" placeholder="Dejar vacío para usar miniatura de YouTube..."
+                            class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Sinopsis *</label>
+                        <textarea id="inputSynopsis" required rows="2" placeholder="¿De qué trata esta serie?"
+                            class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"></textarea>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Tu comentario / Recomendación *</label>
+                        <textarea id="inputReview" required rows="2" placeholder="¿Por qué recomiendas verla?"
+                            class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-white/10 flex justify-end gap-3">
+                    <button type="button" onclick="closeFormModal()" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="saveSeriesSubmitBtn" class="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold shadow-lg shadow-red-600/30 transition cursor-pointer">
+                        Guardar en la Nube
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 3: COMPARTIR ==================== -->
+    <div id="shareModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+        <div class="modal-animate relative w-full max-w-lg bg-[#161822] border border-white/10 rounded-2xl shadow-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-display font-bold text-white flex items-center gap-2">
+                    <i class="fa-brands fa-youtube text-red-500 text-xl"></i>
+                    <span>Compartir Catálogo de Series</span>
+                </h3>
+                <button onclick="closeShareModal()" class="text-gray-400 hover:text-white cursor-pointer">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <p class="text-sm text-gray-400 mb-3">Copia esta lista con tus series y temporadas para enviarla por WhatsApp o redes:</p>
+            <textarea id="shareTextArea" readonly rows="7" 
+                class="w-full bg-[#0b0c10] border border-white/10 rounded-xl p-3.5 text-xs text-gray-200 font-mono focus:outline-none mb-3"></textarea>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button onclick="copyShareText()" class="py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:opacity-95 text-white text-sm font-semibold shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copiar texto</span>
+                </button>
+                <button onclick="copyDirectCatalogLink()" class="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-sm font-semibold transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-link text-red-400"></i>
+                    <span>Copiar enlace directo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 4: ACCESO CREADOR (PIN) ==================== -->
+    <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+        <div class="modal-animate relative w-full max-w-md bg-[#161822] border border-white/10 rounded-2xl shadow-2xl p-6">
+            <div class="flex items-center justify-between mb-3">
+                <h3 id="authModalTitle" class="text-lg font-display font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-red-500"></i>
+                    <span>Acceso Creador</span>
+                </h3>
+                <button onclick="closeAuthModal()" class="text-gray-400 hover:text-white cursor-pointer">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <p id="authModalDesc" class="text-sm text-gray-400 mb-4">Introduce tu clave secreta para administrar las series.</p>
+
+            <form onsubmit="handleCreatorPinSubmit(event)" class="space-y-4">
+                <div>
+                    <label id="authPinLabel" class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Clave / PIN</label>
+                    <input type="password" id="creatorPinInput" required minlength="4" placeholder="••••••••"
+                        class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                </div>
+
+                <div id="confirmPinContainer" class="hidden">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Confirmar clave privada</label>
+                    <input type="password" id="creatorPinConfirmInput" minlength="4" placeholder="••••••••"
+                        class="w-full bg-[#0b0c10] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                </div>
+
+                <div id="forgotPinContainer" class="hidden text-xs text-gray-400 bg-white/5 border border-white/10 rounded-xl p-3">
+                    <i class="fa-solid fa-lock text-red-400 mr-1"></i> Solo el creador que configuró este PIN puede añadir, editar o eliminar series.
+                </div>
+
+                <div class="flex justify-end gap-2.5 pt-2">
+                    <button type="button" onclick="closeAuthModal()" class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="authSubmitBtn" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold shadow-lg shadow-red-600/30 transition cursor-pointer">
+                        Desbloquear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 5: ELIMINAR SERIE ==================== -->
+    <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+        <div class="modal-animate relative w-full max-w-sm bg-[#161822] border border-white/10 rounded-2xl shadow-2xl p-6 text-center">
+            <div class="w-12 h-12 mx-auto rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-xl mb-3">
+                <i class="fa-solid fa-trash"></i>
+            </div>
+            <h3 class="text-lg font-display font-bold text-white mb-2">¿Eliminar esta serie?</h3>
+            <p id="deleteSeriesNameText" class="text-sm text-gray-400 mb-6">Se borrará de la nube para todos los espectadores.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition cursor-pointer">Cancelar</button>
+                <button onclick="confirmDeleteSeries()" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition cursor-pointer">Sí, eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST ==================== -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-[#1e2130] border border-red-500/40 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <span id="toastMessage" class="text-sm font-medium">Acción completada</span>
+        </div>
+    </div>
+
+    <!-- ==================== FIREBASE & LOGIC ==================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const CATEGORY_STYLES = {
+            'Animación Indie': { gradient: 'from-rose-900 via-purple-950 to-slate-900', icon: 'fa-wand-magic-sparkles' },
+            'Ciencia Ficción': { gradient: 'from-cyan-900 via-blue-950 to-slate-900', icon: 'fa-rocket' },
+            'Misterio / Terror': { gradient: 'from-amber-950 via-stone-900 to-black', icon: 'fa-eye' },
+            'Documental': { gradient: 'from-emerald-900 via-teal-950 to-slate-900', icon: 'fa-earth-americas' },
+            'Comedia': { gradient: 'from-orange-800 via-red-950 to-slate-900', icon: 'fa-face-laugh-beam' },
+            'Drama / Webserie': { gradient: 'from-indigo-900 via-zinc-900 to-black', icon: 'fa-clapperboard' }
+        };
+
+        let seriesList = [];
+        let selectedCategory = 'Todos';
+        let searchQuery = '';
+        let isCreatorAuthenticated = false;
+        let storedCreatorPinHash = null;
+        let authModalMode = 'login'; // 'setup' | 'login' | 'change'
+        let pendingDeleteSeriesId = null;
+        let isInitialCloudSyncDone = false;
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let useCloudStorage = false;
+        // Usar siempre __app_id oficial del entorno (exigido por las reglas de seguridad de Firestore)
+        const SHARED_CATALOG_ID = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
+
+        function escapeHTML(str) {
+            return String(str || '').replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
+        async function hashPin(pin) {
+            const data = new TextEncoder().encode(String(pin).trim());
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function parseYouTubeUrl(rawUrl) {
+            if (!rawUrl) return { videoId: null, listId: null };
+            const str = String(rawUrl).trim();
+            let videoId = null;
+            let listId = null;
+
+            const srcMatch = str.match(/src=["']([^"']+)["']/i);
+            const target = srcMatch ? srcMatch[1] : str;
+
+            const listMatch = target.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+            if (listMatch) listId = listMatch[1];
+
+            const vidPatterns = [
+                /(?:youtube\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+                /^([a-zA-Z0-9_-]{11})$/
+            ];
+            for (const p of vidPatterns) {
+                const m = target.match(p);
+                if (m) {
+                    videoId = m[1];
+                    break;
+                }
+            }
+            return { videoId, listId };
+        }
+
+        function getAutoThumbnail(seasons, customImage) {
+            if (customImage && customImage.trim()) return customImage.trim();
+            for (const s of (seasons || [])) {
+                const { videoId } = parseYouTubeUrl(s.url);
+                if (videoId) return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+            }
+            return '';
+        }
+
+        function normalizeSeriesData(raw) {
+            const seasons = Array.isArray(raw.seasons) && raw.seasons.length > 0
+                ? raw.seasons.map((s, idx) => ({
+                    name: s.name || `Temporada ${idx + 1}`,
+                    url: s.url || ''
+                }))
+                : (raw.youtubeUrl ? [{ name: 'Temporada 1', url: raw.youtubeUrl }] : []);
+
+            return {
+                id: raw.id || ('yt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+                title: raw.title || 'Serie sin título',
+                channel: raw.channel || 'YouTube',
+                genre: raw.genre || 'Animación Indie',
+                status: raw.status || 'En emisión',
+                year: Number(raw.year) || 2025,
+                rating: Number(raw.rating) || 5,
+                featured: Boolean(raw.featured),
+                seasons,
+                image: getAutoThumbnail(seasons, raw.image),
+                synopsis: raw.synopsis || '',
+                review: raw.review || '',
+                updatedAt: raw.updatedAt || Date.now()
+            };
+        }
+
+        function loadCatalogFromUrlHash() {
+            try {
+                if (window.location.hash && window.location.hash.startsWith('#catalog=')) {
+                    const encoded = window.location.hash.slice('#catalog='.length);
+                    const jsonStr = decodeURIComponent(escape(atob(encoded)));
+                    const parsed = JSON.parse(jsonStr);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        seriesList = parsed.map(normalizeSeriesData);
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn('No se pudo leer el catálogo desde el enlace:', e);
+            }
+            return false;
+        }
+
+        function updateSyncBadge(status, text) {
+            const badge = document.getElementById('cloudSyncBadge');
+            if (!badge) return;
+            if (status === 'ok') {
+                badge.className = 'inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>${escapeHTML(text)}</span>`;
+            } else if (status === 'error') {
+                badge.className = 'inline-flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span><span>${escapeHTML(text)}</span>`;
+            } else {
+                badge.className = 'inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1.5 rounded-lg';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span><span>${escapeHTML(text)}</span>`;
+            }
+        }
+
+        async function initCloudSync() {
+            const loadedFromHash = loadCatalogFromUrlHash();
+            try {
+                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                    throw new Error('Firebase no configurado');
+                }
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    try {
+                        const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                        currentUser = cred.user;
+                    } catch (tokenErr) {
+                        const anonCred = await signInAnonymously(auth);
+                        currentUser = anonCred.user;
+                    }
+                } else {
+                    const anonCred = await signInAnonymously(auth);
+                    currentUser = anonCred.user;
+                }
+
+                useCloudStorage = true;
+
+                // Cargar PIN de creador
+                const adminDocRef = doc(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_config', 'admin');
+                const adminSnap = await getDoc(adminDocRef);
+                if (adminSnap.exists() && adminSnap.data().pinHash) {
+                    storedCreatorPinHash = adminSnap.data().pinHash;
+                }
+
+                // Escuchar catálogo público en tiempo real
+                const catalogColRef = collection(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_public_catalog');
+                const initialSnap = await getDocs(catalogColRef);
+                if (!initialSnap.empty) {
+                    seriesList = initialSnap.docs.map(d => normalizeSeriesData({ id: d.id, ...d.data() }));
+                } else if (loadedFromHash && seriesList.length > 0) {
+                    for (const item of seriesList) {
+                        await setDoc(doc(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_public_catalog', item.id), item);
+                    }
+                }
+
+                isInitialCloudSyncDone = true;
+                updateSyncBadge('ok', 'Sincronizado');
+                renderAll();
+
+                onSnapshot(catalogColRef, (snapshot) => {
+                    if (!snapshot.empty || !loadedFromHash) {
+                        seriesList = snapshot.docs.map(d => normalizeSeriesData({ id: d.id, ...d.data() }));
+                    }
+                    isInitialCloudSyncDone = true;
+                    updateSyncBadge('ok', 'En vivo');
+                    renderAll();
+                }, (err) => {
+                    console.error('Error en snapshot:', err);
+                    updateSyncBadge('error', 'Error lectura nube');
+                });
+            } catch (err) {
+                console.error('Error conectando a la nube:', err);
+                isInitialCloudSyncDone = true;
+                updateSyncBadge('error', 'Modo local / enlace');
+                renderAll();
+            }
+        }
+
+        function updateCreatorUIState() {
+            const authBtn = document.getElementById('creatorAuthBtn');
+            const authIcon = document.getElementById('creatorAuthIcon');
+            const authText = document.getElementById('creatorAuthText');
+            const addNavBtn = document.getElementById('addSeriesNavBtn');
+            const footerTools = document.getElementById('creatorFooterTools');
+
+            if (isCreatorAuthenticated) {
+                authBtn.className = 'p-2.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-semibold transition flex items-center gap-2 cursor-pointer';
+                authIcon.className = 'fa-solid fa-unlock text-emerald-400';
+                authText.textContent = 'Modo Creador (Salir)';
+                addNavBtn.classList.remove('hidden');
+                addNavBtn.classList.add('flex');
+                footerTools.classList.remove('hidden');
+                footerTools.classList.add('flex');
+            } else {
+                authBtn.className = 'p-2.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs sm:text-sm font-medium transition flex items-center gap-2 cursor-pointer';
+                authIcon.className = 'fa-solid fa-lock text-gray-400';
+                authText.textContent = 'Acceso Creador';
+                addNavBtn.classList.add('hidden');
+                addNavBtn.classList.remove('flex');
+                footerTools.classList.add('hidden');
+                footerTools.classList.remove('flex');
+            }
+        }
+
+        function renderCategoryFilters() {
+            const container = document.getElementById('categoryFilters');
+            if (!container) return;
+            const categories = ['Todos', ...Object.keys(CATEGORY_STYLES)];
+            container.innerHTML = categories.map(cat => {
+                const active = selectedCategory === cat;
+                return `<button onclick="selectCategory('${escapeHTML(cat)}')"
+                    class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${active
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/25'
+                        : 'bg-[#161822] text-gray-400 hover:text-white border border-white/10'}">
+                    ${escapeHTML(cat)}
+                </button>`;
+            }).join('');
+        }
+
+        function renderPosterVisual(series, heightClass = 'h-48') {
+            const style = CATEGORY_STYLES[series.genre] || CATEGORY_STYLES['Animación Indie'];
+            if (series.image) {
+                return `<div class="relative ${heightClass} w-full overflow-hidden bg-gradient-to-br ${style.gradient}">
+                    <img src="${escapeHTML(series.image)}" alt="${escapeHTML(series.title)}"
+                        onerror="this.style.display='none'"
+                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#161822] via-transparent to-black/30"></div>
+                </div>`;
+            }
+            return `<div class="relative ${heightClass} w-full overflow-hidden bg-gradient-to-br ${style.gradient} flex items-center justify-center">
+                <i class="fa-solid ${style.icon} text-4xl text-white/25"></i>
+                <div class="absolute inset-0 bg-gradient-to-t from-[#161822] via-transparent to-black/20"></div>
+            </div>`;
+        }
+
+        function renderHero() {
+            const heroSection = document.getElementById('heroSection');
+            const heroContent = document.getElementById('heroContent');
+            const mainContainer = document.getElementById('mainContainer');
+            if (!heroSection || !heroContent) return;
+
+            const featured = seriesList.find(s => s.featured) || seriesList[0];
+            if (!featured) {
+                heroSection.classList.add('hidden');
+                mainContainer.classList.add('pt-24');
+                return;
+            }
+
+            heroSection.classList.remove('hidden');
+            mainContainer.classList.remove('pt-24');
+
+            const seasonsCount = (featured.seasons || []).length;
+            heroContent.innerHTML = `
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-fire"></i> Serie Recomendada
+                    </div>
+                    <h1 class="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight leading-tight">
+                        ${escapeHTML(featured.title)}
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-300">
+                        <span class="flex items-center gap-1.5 font-semibold text-red-400">
+                            <i class="fa-brands fa-youtube"></i> ${escapeHTML(featured.channel)}
+                        </span>
+                        <span>•</span>
+                        <span>${escapeHTML(featured.genre)}</span>
+                        <span>•</span>
+                        <span>${featured.year}</span>
+                        <span>•</span>
+                        <span class="px-2.5 py-0.5 rounded-lg bg-white/10 font-semibold">${seasonsCount} ${seasonsCount === 1 ? 'temporada' : 'temporadas'}</span>
+                        <span class="text-amber-400 font-bold">⭐ ${featured.rating}</span>
+                    </div>
+                    <p class="text-gray-300 text-sm sm:text-base line-clamp-3 max-w-2xl leading-relaxed">
+                        ${escapeHTML(featured.synopsis)}
+                    </p>
+                    <div class="pt-2 flex flex-wrap items-center gap-3">
+                        <button onclick="openDetailModal('${escapeHTML(featured.id)}', 0)"
+                            class="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-lg shadow-red-600/30 transition flex items-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-play"></i> Ver Temporadas
+                        </button>
+                    </div>
+                </div>
+                <div class="lg:col-span-5">
+                    <div onclick="openDetailModal('${escapeHTML(featured.id)}', 0)"
+                        class="group cursor-pointer rounded-2xl overflow-hidden border border-white/15 shadow-2xl relative">
+                        ${renderPosterVisual(featured, 'h-60 sm:h-72')}
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/40 transition">
+                            <div class="w-16 h-16 rounded-full bg-red-600/95 text-white flex items-center justify-center text-xl shadow-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-play ml-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.renderCatalog = function() {
+            const loadingState = document.getElementById('loadingState');
+            const grid = document.getElementById('seriesGrid');
+            const emptyState = document.getElementById('emptyState');
+            const countBadge = document.getElementById('seriesCountBadge');
+            const sortBy = document.getElementById('sortSelect')?.value || 'featured';
+
+            if (!isInitialCloudSyncDone) {
+                loadingState.classList.remove('hidden');
+                grid.classList.add('hidden');
+                emptyState.classList.add('hidden');
+                return;
+            }
+
+            loadingState.classList.add('hidden');
+
+            let filtered = seriesList.filter(s => {
+                const matchesCat = selectedCategory === 'Todos' || s.genre === selectedCategory;
+                const q = searchQuery.toLowerCase().trim();
+                const matchesSearch = !q ||
+                    s.title.toLowerCase().includes(q) ||
+                    s.channel.toLowerCase().includes(q) ||
+                    s.genre.toLowerCase().includes(q);
+                return matchesCat && matchesSearch;
+            });
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'rating') return b.rating - a.rating;
+                if (sortBy === 'newest') return b.year - a.year;
+                if (sortBy === 'seasons') return (b.seasons?.length || 0) - (a.seasons?.length || 0);
+                if (sortBy === 'title') return a.title.localeCompare(b.title);
+                return (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || b.updatedAt - a.updatedAt;
+            });
+
+            countBadge.textContent = `${filtered.length} ${filtered.length === 1 ? 'serie' : 'series'}`;
+
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                const emptyTitle = document.getElementById('emptyStateTitle');
+                const emptyDesc = document.getElementById('emptyStateDesc');
+                const emptyActions = document.getElementById('emptyStateActions');
+
+                if (seriesList.length > 0) {
+                    emptyTitle.textContent = 'No hay coincidencias';
+                    emptyDesc.textContent = 'No encontramos series con ese filtro o búsqueda.';
+                    emptyActions.innerHTML = `<button onclick="resetFilters()" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-semibold cursor-pointer">Limpiar filtros</button>`;
+                } else {
+                    emptyTitle.textContent = 'Aún no hay series publicadas';
+                    emptyDesc.textContent = isCreatorAuthenticated
+                        ? 'Ya estás en Modo Creador. ¡Añade tu primera serie de YouTube para que todos la vean!'
+                        : 'El creador todavía no ha añadido series en este catálogo sincronizado en la nube.';
+                    emptyActions.innerHTML = isCreatorAuthenticated
+                        ? `<button onclick="openFormModal()" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg cursor-pointer"><i class="fa-solid fa-plus mr-1"></i> Añadir primera serie</button>`
+                        : '';
+                }
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.classList.remove('hidden');
+
+            grid.innerHTML = filtered.map(series => {
+                const seasonsCount = (series.seasons || []).length;
+                const adminControls = isCreatorAuthenticated ? `
+                    <div class="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+                        <button onclick="event.stopPropagation(); openFormModal('${escapeHTML(series.id)}')" title="Editar serie"
+                            class="w-8 h-8 rounded-lg bg-black/80 hover:bg-amber-500 text-white flex items-center justify-center text-xs backdrop-blur-md border border-white/15 transition cursor-pointer">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); askDeleteSeries('${escapeHTML(series.id)}')" title="Eliminar serie"
+                            class="w-8 h-8 rounded-lg bg-black/80 hover:bg-red-600 text-white flex items-center justify-center text-xs backdrop-blur-md border border-white/15 transition cursor-pointer">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                ` : '';
+
+                return `
+                <article onclick="openDetailModal('${escapeHTML(series.id)}', 0)"
+                    class="series-card group relative bg-[#161822] border border-white/10 rounded-2xl overflow-hidden flex flex-col cursor-pointer">
+                    ${adminControls}
+                    <div class="relative">
+                        ${renderPosterVisual(series, 'h-48')}
+                        <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-[11px] font-bold text-white border border-white/10">
+                            ${seasonsCount} ${seasonsCount === 1 ? 'Temp.' : 'Temps.'}
+                        </span>
+                        <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/80 text-amber-400 text-xs font-bold border border-white/10">
+                            ⭐ ${series.rating}
+                        </span>
+                    </div>
+
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 text-[11px] text-gray-400 mb-1">
+                                <span class="text-red-400 font-semibold truncate"><i class="fa-brands fa-youtube mr-1"></i>${escapeHTML(series.channel)}</span>
+                                <span>${series.year}</span>
+                            </div>
+                            <h3 class="font-display font-bold text-base text-white group-hover:text-red-400 transition line-clamp-1">
+                                ${escapeHTML(series.title)}
+                            </h3>
+                            <p class="text-xs text-gray-400 line-clamp-2 mt-1.5 leading-relaxed">
+                                ${escapeHTML(series.synopsis)}
+                            </p>
+                        </div>
+
+                        <div class="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                            <span class="px-2 py-0.5 rounded bg-white/5 text-gray-300">${escapeHTML(series.genre)}</span>
+                            <span class="text-red-400 font-semibold flex items-center gap-1">
+                                Ver lista <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                            </span>
+                        </div>
+                    </div>
+                </article>`;
+            }).join('');
+        };
+
+        function renderAll() {
+            updateCreatorUIState();
+            renderCategoryFilters();
+            renderHero();
+            renderCatalog();
+        }
+
+        window.selectCategory = function(cat) {
+            selectedCategory = cat;
+            renderCategoryFilters();
+            renderCatalog();
+        };
+
+        window.resetFilters = function() {
+            selectedCategory = 'Todos';
+            searchQuery = '';
+            const dInput = document.getElementById('searchInputDesktop');
+            const mInput = document.getElementById('searchInputMobile');
+            if (dInput) dInput.value = '';
+            if (mInput) mInput.value = '';
+            renderCategoryFilters();
+            renderCatalog();
+        };
+
+        // ==================== REPRODUCTOR DE TEMPORADAS Y DETALLES ====================
+        window.openDetailModal = function(seriesId, seasonIdx = 0) {
+            const series = seriesList.find(s => s.id === seriesId);
+            if (!series) return;
+
+            const seasons = series.seasons || [];
+            const activeIdx = Math.min(Math.max(0, seasonIdx), Math.max(0, seasons.length - 1));
+            const currentSeason = seasons[activeIdx] || { name: 'Temporada 1', url: '' };
+            const { videoId, listId } = parseYouTubeUrl(currentSeason.url);
+
+            let embedSrc = '';
+            if (listId && videoId) {
+                embedSrc = `https://www.youtube.com/embed/${videoId}?list=${listId}&rel=0`;
+            } else if (listId) {
+                embedSrc = `https://www.youtube.com/embed/videoseries?list=${listId}&rel=0`;
+            } else if (videoId) {
+                embedSrc = `https://www.youtube.com/embed/${videoId}?rel=0`;
+            }
+
+            const seasonButtonsHtml = seasons.map((st, idx) => `
+                <button onclick="openDetailModal('${escapeHTML(series.id)}', ${idx})"
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${idx === activeIdx
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                        : 'bg-[#0b0c10] text-gray-300 hover:bg-white/10 border border-white/10'}">
+                    <i class="fa-solid fa-list-ol"></i>
+                    <span>${escapeHTML(st.name)}</span>
+                </button>
+            `).join('');
+
+            const playerHtml = embedSrc ? `
+                <div class="relative w-full aspect-video bg-black">
+                    <iframe class="w-full h-full"
+                        src="${escapeHTML(embedSrc)}"
+                        title="${escapeHTML(series.title)} - ${escapeHTML(currentSeason.name)}"
+                        frameborder="0"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen></iframe>
+                </div>
+            ` : `
+                <div class="w-full aspect-video bg-[#0b0c10] flex flex-col items-center justify-center p-6 text-center">
+                    <i class="fa-brands fa-youtube text-5xl text-red-500 mb-3"></i>
+                    <p class="text-sm text-gray-300 mb-3">No se detectó un enlace válido de video o playlist para esta temporada.</p>
+                </div>
+            `;
+
+            const content = document.getElementById('detailModalContent');
+            content.innerHTML = `
+                ${playerHtml}
+                <div class="p-6 space-y-5">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-red-500"></i> Selecciona la temporada que quieres ver:
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${seasonButtonsHtml}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-white/10 pt-4">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-1">
+                                <span class="text-red-400 font-bold"><i class="fa-brands fa-youtube mr-1"></i>${escapeHTML(series.channel)}</span>
+                                <span>•</span>
+                                <span>${escapeHTML(series.genre)}</span>
+                                <span>•</span>
+                                <span>${escapeHTML(series.status)}</span>
+                                <span>•</span>
+                                <span class="text-amber-400 font-bold">⭐ ${series.rating}</span>
+                            </div>
+                            <h2 class="text-2xl font-display font-extrabold text-white">${escapeHTML(series.title)}</h2>
+                        </div>
+                        ${currentSeason.url ? `
+                            <a href="${escapeHTML(currentSeason.url)}" target="_blank" rel="noopener noreferrer"
+                                class="shrink-0 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-red-600 text-white text-xs font-bold transition flex items-center gap-2">
+                                <i class="fa-brands fa-youtube"></i> Abrir en YouTube
+                            </a>
+                        ` : ''}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-[#0b0c10] border border-white/5 rounded-xl p-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Sinopsis</h4>
+                            <p class="text-sm text-gray-300 leading-relaxed">${escapeHTML(series.synopsis)}</p>
+                        </div>
+                        <div class="bg-[#0b0c10] border border-red-500/20 rounded-xl p-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-red-400 mb-1.5">Comentario del Creador</h4>
+                            <p class="text-sm text-gray-200 leading-relaxed">${escapeHTML(series.review)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeDetailModal = function() {
+            const modal = document.getElementById('detailModal');
+            const content = document.getElementById('detailModalContent');
+            if (content) content.innerHTML = '';
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        // ==================== FORMULARIO AÑADIR / EDITAR SERIE ====================
+        window.addSeasonFieldRow = function(name = '', url = '') {
+            const container = document.getElementById('seasonsFormContainer');
+            const index = container.children.length + 1;
+            const row = document.createElement('div');
+            row.className = 'season-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-[#161822] p-2.5 rounded-xl border border-white/10';
+            row.innerHTML = `
+                <div class="sm:col-span-4">
+                    <input type="text" class="season-name-input w-full bg-[#0b0c10] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
+                        placeholder="Ej. Temporada ${index}" value="${escapeHTML(name || `Temporada ${index}`)}" required>
+                </div>
+                <div class="sm:col-span-7">
+                    <input type="text" class="season-url-input w-full bg-[#0b0c10] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500"
+                        placeholder="Enlace playlist o video de YouTube..." value="${escapeHTML(url)}" required>
+                </div>
+                <div class="sm:col-span-1 flex justify-end">
+                    <button type="button" onclick="removeSeasonFieldRow(this)" title="Quitar temporada"
+                        class="w-8 h-8 rounded-lg bg-red-500/15 hover:bg-red-600 text-red-400 hover:text-white flex items-center justify-center text-xs transition cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(row);
+        };
+
+        window.removeSeasonFieldRow = function(btn) {
+            const container = document.getElementById('seasonsFormContainer');
+            if (container.children.length <= 1) {
+                showToast('Debe haber al menos 1 temporada');
+                return;
+            }
+            btn.closest('.season-row').remove();
+        };
+
+        window.openFormModal = function(seriesId = null) {
+            if (!isCreatorAuthenticated) {
+                openAuthModal();
+                return;
+            }
+            const form = document.getElementById('seriesForm');
+            form.reset();
+            const seasonsContainer = document.getElementById('seasonsFormContainer');
+            seasonsContainer.innerHTML = '';
+
+            if (seriesId) {
+                const s = seriesList.find(item => item.id === seriesId);
+                if (!s) return;
+                document.getElementById('formModalTitle').innerHTML = '<i class="fa-solid fa-pen text-amber-400"></i> <span>Editar Serie</span>';
+                document.getElementById('editSeriesId').value = s.id;
+                document.getElementById('inputTitle').value = s.title;
+                document.getElementById('inputChannel').value = s.channel;
+                document.getElementById('inputGenre').value = s.genre;
+                document.getElementById('inputStatus').value = s.status;
+                document.getElementById('inputYear').value = s.year;
+                document.getElementById('inputRating').value = String(s.rating);
+                document.getElementById('inputFeatured').checked = Boolean(s.featured);
+                document.getElementById('inputImage').value = s.image || '';
+                document.getElementById('inputSynopsis').value = s.synopsis;
+                document.getElementById('inputReview').value = s.review;
+
+                (s.seasons || []).forEach(st => addSeasonFieldRow(st.name, st.url));
+            } else {
+                document.getElementById('formModalTitle').innerHTML = '<i class="fa-brands fa-youtube text-red-500 text-xl"></i> <span>Añadir Serie de YouTube</span>';
+                document.getElementById('editSeriesId').value = '';
+                addSeasonFieldRow('Temporada 1', '');
+            }
+
+            const modal = document.getElementById('formModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeFormModal = function() {
+            const modal = document.getElementById('formModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.handleFormSubmit = async function(event) {
+            event.preventDefault();
+            if (!isCreatorAuthenticated) {
+                showToast('Acceso denegado: inicia sesión como creador');
+                return;
+            }
+
+            const seasonRows = document.querySelectorAll('#seasonsFormContainer .season-row');
+            const seasons = [];
+            seasonRows.forEach((row, idx) => {
+                const name = row.querySelector('.season-name-input').value.trim() || `Temporada ${idx + 1}`;
+                const url = row.querySelector('.season-url-input').value.trim();
+                if (url) seasons.push({ name, url });
+            });
+
+            if (seasons.length === 0) {
+                showToast('Añade al menos un enlace de temporada');
+                return;
+            }
+
+            const editId = document.getElementById('editSeriesId').value.trim();
+            const seriesId = editId || ('yt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6));
+            const customImg = document.getElementById('inputImage').value.trim();
+
+            const seriesObj = {
+                id: seriesId,
+                title: document.getElementById('inputTitle').value.trim(),
+                channel: document.getElementById('inputChannel').value.trim(),
+                genre: document.getElementById('inputGenre').value,
+                status: document.getElementById('inputStatus').value,
+                year: Number(document.getElementById('inputYear').value) || 2025,
+                rating: Number(document.getElementById('inputRating').value) || 5,
+                featured: document.getElementById('inputFeatured').checked,
+                seasons,
+                image: getAutoThumbnail(seasons, customImg),
+                synopsis: document.getElementById('inputSynopsis').value.trim(),
+                review: document.getElementById('inputReview').value.trim(),
+                updatedAt: Date.now()
+            };
+
+            const btn = document.getElementById('saveSeriesSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            try {
+                if (useCloudStorage && db) {
+                    if (!currentUser) {
+                        const anonCred = await signInAnonymously(auth);
+                        currentUser = anonCred.user;
+                    }
+                    const docRef = doc(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_public_catalog', seriesId);
+                    await setDoc(docRef, seriesObj);
+                    const verifySnap = await getDoc(docRef);
+                    if (!verifySnap.exists()) {
+                        throw new Error('No se pudo verificar la escritura en Firestore');
+                    }
+                } else {
+                    const idx = seriesList.findIndex(item => item.id === seriesId);
+                    if (idx >= 0) seriesList[idx] = seriesObj;
+                    else seriesList.unshift(seriesObj);
+                    renderAll();
+                }
+
+                closeFormModal();
+                showToast(editId ? '¡Serie actualizada en la nube!' : '¡Serie publicada en la nube!');
+            } catch (err) {
+                console.error('Error guardando serie:', err);
+                showToast('Error al guardar en nube: ' + (err.code || err.message));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Guardar en la Nube';
+            }
+        };
+
+        // ==================== ELIMINAR SERIE ====================
+        window.askDeleteSeries = function(seriesId) {
+            if (!isCreatorAuthenticated) return;
+            const s = seriesList.find(item => item.id === seriesId);
+            if (!s) return;
+            pendingDeleteSeriesId = seriesId;
+            document.getElementById('deleteSeriesNameText').textContent = `Se borrará "${s.title}" para todos los espectadores.`;
+            const modal = document.getElementById('deleteConfirmModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeDeleteConfirmModal = function() {
+            pendingDeleteSeriesId = null;
+            const modal = document.getElementById('deleteConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.confirmDeleteSeries = async function() {
+            if (!pendingDeleteSeriesId || !isCreatorAuthenticated) return;
+            const targetId = pendingDeleteSeriesId;
+            closeDeleteConfirmModal();
+            try {
+                if (useCloudStorage && db) {
+                    await deleteDoc(doc(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_public_catalog', targetId));
+                } else {
+                    seriesList = seriesList.filter(item => item.id !== targetId);
+                    renderAll();
+                }
+                showToast('Serie eliminada');
+            } catch (err) {
+                console.error('Error eliminando serie:', err);
+                showToast('No se pudo eliminar: ' + (err.code || err.message));
+            }
+        };
+
+        // ==================== AUTENTICACIÓN DE CREADOR (PIN) ====================
+        window.handleCreatorAuthClick = function() {
+            if (isCreatorAuthenticated) {
+                isCreatorAuthenticated = false;
+                renderAll();
+                showToast('Saliste del Modo Creador');
+            } else {
+                openAuthModal();
+            }
+        };
+
+        window.openAuthModal = function(forceMode = null) {
+            const modal = document.getElementById('authModal');
+            const title = document.getElementById('authModalTitle');
+            const desc = document.getElementById('authModalDesc');
+            const pinInput = document.getElementById('creatorPinInput');
+            const confirmContainer = document.getElementById('confirmPinContainer');
+            const confirmInput = document.getElementById('creatorPinConfirmInput');
+            const forgotContainer = document.getElementById('forgotPinContainer');
+            const submitBtn = document.getElementById('authSubmitBtn');
+
+            pinInput.value = '';
+            confirmInput.value = '';
+
+            if (forceMode === 'change') {
+                authModalMode = 'change';
+                title.innerHTML = '<i class="fa-solid fa-key text-amber-400"></i> <span>Cambiar PIN de Creador</span>';
+                desc.textContent = 'Establece una nueva clave secreta (mínimo 4 caracteres).';
+                confirmContainer.classList.remove('hidden');
+                confirmInput.required = true;
+                forgotContainer.classList.add('hidden');
+                submitBtn.textContent = 'Actualizar PIN';
+            } else if (!storedCreatorPinHash) {
+                authModalMode = 'setup';
+                title.innerHTML = '<i class="fa-solid fa-shield-halved text-red-500"></i> <span>Crear Clave de Creador</span>';
+                desc.textContent = 'Configura tu clave privada por primera vez. Nadie más podrá añadir ni editar series.';
+                confirmContainer.classList.remove('hidden');
+                confirmInput.required = true;
+                forgotContainer.classList.add('hidden');
+                submitBtn.textContent = 'Guardar y Entrar';
+            } else {
+                authModalMode = 'login';
+                title.innerHTML = '<i class="fa-solid fa-shield-halved text-red-500"></i> <span>Acceso Creador</span>';
+                desc.textContent = 'Introduce tu clave secreta para administrar el catálogo.';
+                confirmContainer.classList.add('hidden');
+                confirmInput.required = false;
+                forgotContainer.classList.remove('hidden');
+                submitBtn.textContent = 'Desbloquear';
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => pinInput.focus(), 50);
+        };
+
+        window.openChangePinModal = function() {
+            if (!isCreatorAuthenticated) return;
+            openAuthModal('change');
+        };
+
+        window.closeAuthModal = function() {
+            const modal = document.getElementById('authModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.handleCreatorPinSubmit = async function(event) {
+            event.preventDefault();
+            const pin = document.getElementById('creatorPinInput').value.trim();
+            const confirmPin = document.getElementById('creatorPinConfirmInput').value.trim();
+
+            if (pin.length < 4) {
+                showToast('La clave debe tener al menos 4 caracteres');
+                return;
+            }
+
+            const enteredHash = await hashPin(pin);
+
+            if (authModalMode === 'setup' || authModalMode === 'change') {
+                if (pin !== confirmPin) {
+                    showToast('Las claves no coinciden');
+                    return;
+                }
+                try {
+                    if (useCloudStorage && db) {
+                        const adminDocRef = doc(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_config', 'admin');
+                        await setDoc(adminDocRef, { pinHash: enteredHash, updatedAt: Date.now() });
+                    }
+                    storedCreatorPinHash = enteredHash;
+                    isCreatorAuthenticated = true;
+                    closeAuthModal();
+                    renderAll();
+                    showToast(authModalMode === 'change' ? '¡PIN actualizado con éxito!' : '¡Clave creada! Modo Creador activado');
+                } catch (err) {
+                    console.error('Error guardando PIN:', err);
+                    showToast('Error al guardar el PIN: ' + (err.code || err.message));
+                }
+            } else {
+                if (enteredHash === storedCreatorPinHash) {
+                    isCreatorAuthenticated = true;
+                    closeAuthModal();
+                    renderAll();
+                    showToast('¡Bienvenido, Creador!');
+                } else {
+                    showToast('Clave incorrecta');
+                }
+            }
+        };
+
+        // ==================== INICIALIZACIÓN Y EVENTOS ====================
+        window.addEventListener('DOMContentLoaded', async () => {
+            const dSearch = document.getElementById('searchInputDesktop');
+            const mSearch = document.getElementById('searchInputMobile');
+            if (dSearch) {
+                dSearch.addEventListener('input', (e) => {
+                    searchQuery = e.target.value;
+                    if (mSearch) mSearch.value = searchQuery;
+                    renderCatalog();
+                });
+            }
+            if (mSearch) {
+                mSearch.addEventListener('input', (e) => {
+                    searchQuery = e.target.value;
+                    if (dSearch) dSearch.value = searchQuery;
+                    renderCatalog();
+                });
+            }
+
+            await initCloudSync();
+        });
+
+        window.importCatalogJSON = function(event) {
+            const file = event.target.files[0];
+            if (!file || !isCreatorAuthenticated) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error();
+                    for (const item of imported) {
+                        const normalized = normalizeSeriesData(item);
+                        if (!normalized.id) normalized.id = 'yt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                        if (useCloudStorage && db && currentUser) {
+                            await setDoc(doc(db, 'artifacts', SHARED_CATALOG_ID, 'public', 'data', 'seriestube_public_catalog', normalized.id), normalized);
+                        } else {
+                            seriesList.push(normalized);
+                        }
+                    }
+                    renderAll();
+                    showToast('¡Importado en la nube con éxito!');
+                } catch (err) {
+                    showToast('Archivo JSON inválido');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        };
+
+        window.exportCatalogJSON = function() {
+            const dataStr = JSON.stringify(seriesList, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `seriestube_respaldo_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Respaldo JSON descargado');
+        };
+
+        window.openShareModal = function() {
+            const modal = document.getElementById('shareModal');
+            const textarea = document.getElementById('shareTextArea');
+            if (!seriesList.length) {
+                textarea.value = '🎬 Mi catálogo SeriesTube\n\nAún no hay series publicadas.';
+            } else {
+                const lines = seriesList.map((s, idx) => {
+                    const seasonsInfo = (s.seasons || []).map(st => `   • ${st.name}: ${st.url}`).join('\n');
+                    return `${idx + 1}. ${s.title} (${s.channel || 'YouTube'}) ⭐ ${s.rating}\n${seasonsInfo}`;
+                });
+                textarea.value = `🎬 MIS SERIES RECOMENDADAS EN YOUTUBE\n\n${lines.join('\n\n')}`;
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeShareModal = function() {
+            const modal = document.getElementById('shareModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.copyShareText = function() {
+            const textarea = document.getElementById('shareTextArea');
+            textarea.select();
+            document.execCommand('copy');
+            showToast('Lista copiada al portapapeles');
+        };
+
+        window.copyDirectCatalogLink = function() {
+            try {
+                const payload = btoa(unescape(encodeURIComponent(JSON.stringify(seriesList))));
+                const url = new URL(window.location.href);
+                url.hash = 'catalog=' + payload;
+                const tempInput = document.createElement('input');
+                tempInput.value = url.toString();
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showToast('¡Enlace directo con tus series copiado!');
+            } catch (e) {
+                showToast('No se pudo generar el enlace directo');
+            }
+        };
+
+        window.showToast = function(msg) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toastMessage');
+            if (!toast || !msgEl) return;
+            msgEl.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        };
+    </script>
+</body>
+</html>
